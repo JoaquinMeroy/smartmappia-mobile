@@ -1,6 +1,0 @@
-@import "tailwindcss";
-
-@theme {
-  --color-brand-orange: #f5760c;
-  /* copy the rest of your brand tokens from the web repo's index.css @theme block */
-}
