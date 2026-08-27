@@ -10,10 +10,20 @@
 // old renderer's pinHtml.js — they are plain DOM elements, which Google's
 // AdvancedMarkerElement takes directly as marker content.
 // ---------------------------------------------------------------------
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { RIYADH_CENTER } from '../../lib/constants';
-import { haversineKm, pathMetrics, projectOnPath, pointAlongPath } from '../../lib/geo';
-import { buildPinEl, refreshPinEl, updateDriverHeading, pinSignature } from '../maplibre/pinHtml';
+import { useEffect, useMemo, useRef, useState } from "react";
+import { RIYADH_CENTER } from "../../lib/constants";
+import {
+  haversineKm,
+  pathMetrics,
+  projectOnPath,
+  pointAlongPath,
+} from "../../lib/geo";
+import {
+  buildPinEl,
+  refreshPinEl,
+  updateDriverHeading,
+  pinSignature,
+} from "../maplibre/pinHtml";
 
 const BROWSER_KEY = import.meta.env.VITE_GOOGLE_MAPS_BROWSER_KEY;
 const MAP_ID = import.meta.env.VITE_GOOGLE_MAP_ID;
@@ -42,23 +52,23 @@ function loadGoogleMaps() {
   if (mapsPromise) return mapsPromise;
   // Base script already present: still await the libraries (they may not be
   // imported yet) before resolving, so g.Map / g.marker are guaranteed.
-  if (typeof window !== 'undefined' && window.google?.maps?.importLibrary) {
+  if (typeof window !== "undefined" && window.google?.maps?.importLibrary) {
     mapsPromise = Promise.all([
-      window.google.maps.importLibrary('maps'),
-      window.google.maps.importLibrary('marker'),
+      window.google.maps.importLibrary("maps"),
+      window.google.maps.importLibrary("marker"),
     ]).then(() => window.google.maps);
     return mapsPromise;
   }
   mapsPromise = new Promise((resolve, reject) => {
     if (!BROWSER_KEY) {
-      reject(new Error('VITE_GOOGLE_MAPS_BROWSER_KEY is not set'));
+      reject(new Error("VITE_GOOGLE_MAPS_BROWSER_KEY is not set"));
       return;
     }
-    const cbName = '__smGoogleMapsInit';
+    const cbName = "__smGoogleMapsInit";
     window[cbName] = async () => {
       try {
-        await window.google.maps.importLibrary('maps'); // Map, Polyline, LatLngBounds, InfoWindow
-        await window.google.maps.importLibrary('marker'); // AdvancedMarkerElement
+        await window.google.maps.importLibrary("maps"); // Map, Polyline, LatLngBounds, InfoWindow
+        await window.google.maps.importLibrary("marker"); // AdvancedMarkerElement
         resolve(window.google.maps);
       } catch (e) {
         reject(e);
@@ -66,14 +76,15 @@ function loadGoogleMaps() {
     };
     const params = new URLSearchParams({
       key: BROWSER_KEY,
-      v: 'weekly',
-      loading: 'async',
+      v: "weekly",
+      loading: "async",
       callback: cbName,
     });
-    const script = document.createElement('script');
+    const script = document.createElement("script");
     script.src = `https://maps.googleapis.com/maps/api/js?${params}`;
     script.async = true;
-    script.onerror = () => reject(new Error('Failed to load the Google Maps script'));
+    script.onerror = () =>
+      reject(new Error("Failed to load the Google Maps script"));
     document.head.appendChild(script);
   });
   return mapsPromise;
@@ -107,20 +118,25 @@ export default function GoogleMap({
   }, [onIdle]);
 
   const valid = markers.filter((m) => m && m.lat != null && m.lng != null);
-  const driver = valid.find((m) => m.type === 'driver') || null;
+  const driver = valid.find((m) => m.type === "driver") || null;
 
   // Route geometry, precomputed for snapping. Declared here (above the tween
   // effect that reads it) because the segment lengths only change when the
   // route itself does — recomputing them per animation frame would be waste.
   const lineSig =
-    line && line.length >= 2 ? JSON.stringify(line.map((p) => [p.lat, p.lng])) : '';
+    line && line.length >= 2
+      ? JSON.stringify(line.map((p) => [p.lat, p.lng]))
+      : "";
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const metrics = useMemo(() => (line && line.length >= 2 ? pathMetrics(line) : null), [lineSig]);
+  const metrics = useMemo(
+    () => (line && line.length >= 2 ? pathMetrics(line) : null),
+    [lineSig],
+  );
 
   // Cap the zoom after a fitBounds (Google has no maxZoom arg) so a close pair
   // of points doesn't slam to street level.
   function capZoomOnce(map, g, maxZoom = 15) {
-    g.event.addListenerOnce(map, 'idle', () => {
+    g.event.addListenerOnce(map, "idle", () => {
       if (map.getZoom() > maxZoom) map.setZoom(maxZoom);
     });
   }
@@ -143,21 +159,35 @@ export default function GoogleMap({
           zoom: initialCenter ? 16 : 12,
           mapId: MAP_ID,
           disableDefaultUI: true,
-          zoomControl: true,
-          gestureHandling: 'greedy',
+          zoomControl: false,
+          gestureHandling: "greedy",
           clickableIcons: false,
         });
         mapRef.current = map;
         // Route as two lines: white casing under the orange route.
         routeRef.current = {
-          casing: new g.Polyline({ map, path: [], strokeColor: '#FFFFFF', strokeOpacity: 0.85, strokeWeight: 8, zIndex: 1 }),
-          main: new g.Polyline({ map, path: [], strokeColor: '#FF7E21', strokeOpacity: 0.95, strokeWeight: 4, zIndex: 2 }),
+          casing: new g.Polyline({
+            map,
+            path: [],
+            strokeColor: "#FFFFFF",
+            strokeOpacity: 0.85,
+            strokeWeight: 8,
+            zIndex: 1,
+          }),
+          main: new g.Polyline({
+            map,
+            path: [],
+            strokeColor: "#FF7E21",
+            strokeOpacity: 0.95,
+            strokeWeight: 4,
+            zIndex: 2,
+          }),
         };
         infoRef.current = new g.InfoWindow();
         setReady(true);
       })
       .catch((err) => {
-        console.error('Google Maps failed to load:', err?.message || err);
+        console.error("Google Maps failed to load:", err?.message || err);
         if (!cancelled) setFailed(true);
       });
 
@@ -191,7 +221,7 @@ export default function GoogleMap({
     const seen = new Set();
 
     valid.forEach((m, i) => {
-      const id = String(m.key ?? `${m.type || 'pin'}:${i}`);
+      const id = String(m.key ?? `${m.type || "pin"}:${i}`);
       seen.add(id);
       const sig = pinSignature(m);
       let entry = store.get(id);
@@ -206,14 +236,14 @@ export default function GoogleMap({
         });
         entry = { marker, el, sig, isDriver, label: null };
         if (!isDriver && m.label) {
-          el.style.cursor = 'pointer';
+          el.style.cursor = "pointer";
           entry.label = m.label;
-          el.addEventListener('click', () => {
+          el.addEventListener("click", () => {
             const info = infoRef.current;
             if (!info) return;
-            const span = document.createElement('span');
-            span.className = 'sm-map-popup-label';
-            span.textContent = entry.label || '';
+            const span = document.createElement("span");
+            span.className = "sm-map-popup-label";
+            span.textContent = entry.label || "";
             info.setContent(span);
             info.open({ map, anchor: marker });
           });
@@ -254,7 +284,10 @@ export default function GoogleMap({
     if (!ready || !driver) return undefined;
     let entry = null;
     for (const e of markerStoreRef.current.values()) {
-      if (e.isDriver) { entry = e; break; }
+      if (e.isDriver) {
+        entry = e;
+        break;
+      }
     }
     if (!entry) return undefined;
 
@@ -274,7 +307,9 @@ export default function GoogleMap({
     // the floor keeps a burst of fixes from looking jittery, and the ceiling
     // stops one long GPS gap (tunnel, backgrounded app) from committing the
     // car to a minute-long crawl it can never catch up from.
-    const gap = lastFixAtRef.current ? start - lastFixAtRef.current : DEFAULT_TWEEN_MS;
+    const gap = lastFixAtRef.current
+      ? start - lastFixAtRef.current
+      : DEFAULT_TWEEN_MS;
     const duration = Math.min(9000, Math.max(1000, gap));
     lastFixAtRef.current = start;
 
@@ -288,7 +323,12 @@ export default function GoogleMap({
     if (metrics) {
       const a = projectOnPath(metrics, from);
       const b = projectOnPath(metrics, to);
-      if (a && b && a.offsetM <= SNAP_TOLERANCE_M && b.offsetM <= SNAP_TOLERANCE_M) {
+      if (
+        a &&
+        b &&
+        a.offsetM <= SNAP_TOLERANCE_M &&
+        b.offsetM <= SNAP_TOLERANCE_M
+      ) {
         snap = { fromD: a.distAlong, toD: b.distAlong };
       }
     }
@@ -330,7 +370,10 @@ export default function GoogleMap({
   // needs it too, for the route-snapping metrics.
   useEffect(() => {
     if (!ready || !routeRef.current) return;
-    const path = line && line.length >= 2 ? line.map((p) => ({ lat: p.lat, lng: p.lng })) : [];
+    const path =
+      line && line.length >= 2
+        ? line.map((p) => ({ lat: p.lat, lng: p.lng }))
+        : [];
     routeRef.current.casing.setPath(path);
     routeRef.current.main.setPath(path);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -346,7 +389,7 @@ export default function GoogleMap({
     const map = mapRef.current;
     const g = gRef.current;
     if (!ready || !map || !g || !interactive) return undefined;
-    const listener = g.event.addListener(map, 'idle', () => {
+    const listener = g.event.addListener(map, "idle", () => {
       const center = map.getCenter();
       if (center) onIdleRef.current?.({ lat: center.lat(), lng: center.lng() });
     });
@@ -359,7 +402,15 @@ export default function GoogleMap({
   useEffect(() => {
     const map = mapRef.current;
     const g = gRef.current;
-    if (!ready || !map || !g || interactive || (follow && driver) || valid.length === 0) return;
+    if (
+      !ready ||
+      !map ||
+      !g ||
+      interactive ||
+      (follow && driver) ||
+      valid.length === 0
+    )
+      return;
     if (valid.length === 1) {
       map.setCenter({ lat: valid[0].lat, lng: valid[0].lng });
       map.setZoom(14);
@@ -374,7 +425,7 @@ export default function GoogleMap({
     }
     // Points on different continents (e.g. test GPS) — stay local, not world zoom.
     if (maxSpread > 80) {
-      const d = valid.find((p) => p.type === 'driver') || valid[0];
+      const d = valid.find((p) => p.type === "driver") || valid[0];
       map.setCenter({ lat: d.lat, lng: d.lng });
       map.setZoom(14);
       return;
@@ -395,7 +446,8 @@ export default function GoogleMap({
     const map = mapRef.current;
     const g = gRef.current;
     if (!ready || !map || !g || !follow || !driver || interactive) return;
-    const hasTarget = followTarget && followTarget.lat != null && followTarget.lng != null;
+    const hasTarget =
+      followTarget && followTarget.lat != null && followTarget.lng != null;
 
     // Test/teleport data on far-apart points: stay local, don't world-zoom.
     if (hasTarget) {
@@ -426,13 +478,25 @@ export default function GoogleMap({
     // Subsequent pings: gentle pan to the driver, keeping the current zoom.
     map.panTo({ lat: driver.lat, lng: driver.lng });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [follow, driver?.lat, driver?.lng, followTarget?.lat, followTarget?.lng, ready, interactive]);
+  }, [
+    follow,
+    driver?.lat,
+    driver?.lng,
+    followTarget?.lat,
+    followTarget?.lng,
+    ready,
+    interactive,
+  ]);
 
   if (failed) {
     return (
-      <div className="w-full h-full flex items-center justify-center" style={{ background: '#F3F4F6' }}>
+      <div
+        className="w-full h-full flex items-center justify-center"
+        style={{ background: "#F3F4F6" }}
+      >
         <p className="text-sm font-bold text-brand-grey px-6 text-center">
-          The live map could not be loaded. Please check your connection and try again.
+          The live map could not be loaded. Please check your connection and try
+          again.
         </p>
       </div>
     );
@@ -442,7 +506,7 @@ export default function GoogleMap({
     <div
       ref={containerRef}
       className="sm-ride-map"
-      style={{ height: '100%', width: '100%', background: '#F3F4F6' }}
+      style={{ height: "100%", width: "100%", background: "#F3F4F6" }}
     />
   );
 }
