@@ -1,39 +1,40 @@
 import { fileURLToPath } from "node:url";
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
-// https://vite.dev/config/
-export default defineConfig(({ command }) => ({
-  plugins: [react(), tailwindcss()],
-  resolve: {
-    // '@' alias for shadcn/Watermelon UI components (they import from '@/lib/utils' etc).
-    alias: {
-      "@": fileURLToPath(new URL("./src", import.meta.url)),
-    },
-  },
-  // Chatty logging is dropped from the packaged app: in a WebView it all lands
-  // in logcat, where booking details and addresses have no business being.
-  // warn and error survive, because with no crash reporter wired yet they are
-  // the only signal left when something fails on a real handset.
-  esbuild: {
-    pure:
-      command === "build"
-        ? ["console.log", "console.debug", "console.info"]
-        : [],
-  },
-  // Don't ship source maps in the production bundle (avoid leaking source).
-  build: {
-    sourcemap: false,
-  },
-  server: {
-    host: true,
-    proxy: {
-      "/api": {
-        target: "https://api.smartmappia.com",
-        changeOrigin: true,
-        secure: true,
+export default defineConfig(({ command, mode }) => {
+  const env = loadEnv(mode, process.cwd(), "");
+
+  return {
+    plugins: [react(), tailwindcss()],
+
+    resolve: {
+      alias: {
+        "@": fileURLToPath(new URL("./src", import.meta.url)),
       },
     },
-  },
-}));
+
+    esbuild: {
+      pure:
+        command === "build"
+          ? ["console.log", "console.debug", "console.info"]
+          : [],
+    },
+
+    build: {
+      sourcemap: false,
+    },
+
+    server: {
+      host: true,
+      proxy: {
+        "/api": {
+          target: env.VITE_API_BASE || "http://localhost:4000",
+          changeOrigin: true,
+          secure: (env.VITE_API_BASE || "").startsWith("https"),
+        },
+      },
+    },
+  };
+});
