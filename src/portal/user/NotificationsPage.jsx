@@ -1,23 +1,17 @@
-// ---------------------------------------------------------------------
-// Full notification inbox: /notifications  (spec section 5)
-// The complete history of a user's real-time alerts across both Food
-// Delivery and Pick & Drop, live-updating and deep-linking to tracking.
-// ---------------------------------------------------------------------
-import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Bell, Check, Wifi } from 'lucide-react';
-import { useNotifications } from '../lib/useNotifications';
-import { notificationMeta, relativeTime } from '../lib/notifications';
-import { PortalShell, Card, Spinner } from '../components/ui';
-import { TONE_CLASSES, roleHome } from '../lib/constants';
-import { useAuth } from '../lib/AuthProvider';
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Bell, Check, Wifi } from "lucide-react";
+import { useNotifications } from "../lib/useNotifications";
+import { notificationMeta, relativeTime } from "../lib/notifications";
+import { MobilePortalShell } from "../components/mobile/MobilePortalShell";
+import { Card, Spinner } from "../components/ui";
+import { TONE_CLASSES } from "../lib/constants";
 
 export default function NotificationsPage() {
   const navigate = useNavigate();
-  const { role } = useAuth();
-  const { items, loading, unreadCount, connected, markAllRead, seenAt } = useNotifications();
+  const { items, loading, unreadCount, connected, markAllRead, seenAt } =
+    useNotifications();
 
-  // Opening the inbox clears the unread badge.
   useEffect(() => {
     if (unreadCount > 0) markAllRead();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -31,25 +25,25 @@ export default function NotificationsPage() {
   };
 
   return (
-    <PortalShell
+    <MobilePortalShell
+      variant="tabs"
       title="Notifications"
-      subtitle={connected ? 'Live updates on' : 'Your recent alerts'}
-      onBack={() => navigate(roleHome(role))}
+      subtitle={connected ? "Live updates on" : "Your recent alerts"}
       right={
         connected ? (
-          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-green-600 uppercase tracking-wider px-2">
+          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-green-600 uppercase tracking-wider px-1.5">
             <Wifi className="w-3.5 h-3.5" /> Live
           </span>
         ) : null
       }
     >
-      <div className="max-w-2xl mx-auto space-y-3">
+      <div className="space-y-3">
         {items.length > 0 && (
           <div className="flex justify-end">
             <button
               type="button"
               onClick={markAllRead}
-              className="text-xs font-bold text-brand-orange flex items-center gap-1 cursor-pointer hover:opacity-80"
+              className="text-xs font-bold text-brand-orange flex items-center gap-1"
             >
               <Check className="w-3.5 h-3.5" /> Mark all as read
             </button>
@@ -67,8 +61,8 @@ export default function NotificationsPage() {
             <Bell className="w-10 h-10 text-brand-grey/30 mx-auto mb-3" />
             <p className="font-bold text-brand-dark">No notifications yet</p>
             <p className="text-sm text-brand-grey mt-1">
-              We'll alert you here the moment your driver accepts, arrives, or your order is on the
-              way.
+              We'll alert you here the moment your driver accepts, arrives, or
+              your order is on the way.
             </p>
           </Card>
         )}
@@ -82,10 +76,10 @@ export default function NotificationsPage() {
               key={item.id}
               type="button"
               onClick={() => navigate(meta.href)}
-              className={`w-full text-left flex gap-3 p-4 rounded-2xl border transition-colors cursor-pointer ${
+              className={`w-full text-left flex gap-3 p-4 rounded-2xl border transition-colors ${
                 unread
-                  ? 'bg-brand-orange/5 border-brand-orange/30'
-                  : 'bg-white border-brand-border hover:border-brand-orange/40'
+                  ? "bg-brand-orange/5 border-brand-orange/30"
+                  : "bg-white border-brand-border active:border-brand-orange/40"
               }`}
             >
               <span
@@ -97,10 +91,18 @@ export default function NotificationsPage() {
               </span>
               <span className="min-w-0 flex-1">
                 <span className="flex items-center gap-2">
-                  <span className="font-bold text-brand-dark">{meta.title}</span>
-                  {unread && <span className="w-2 h-2 rounded-full bg-brand-orange shrink-0" />}
+                  <span className="font-bold text-brand-dark">
+                    {meta.title}
+                  </span>
+                  {unread && (
+                    <span className="w-2 h-2 rounded-full bg-brand-orange shrink-0" />
+                  )}
                 </span>
-                {meta.body && <span className="block text-sm text-brand-grey mt-0.5">{meta.body}</span>}
+                {meta.body && (
+                  <span className="block text-sm text-brand-grey mt-0.5">
+                    {meta.body}
+                  </span>
+                )}
                 <span className="block text-xs text-brand-grey/80 mt-1">
                   {relativeTime(item.created_at || item.sent_at)}
                 </span>
@@ -109,6 +111,6 @@ export default function NotificationsPage() {
           );
         })}
       </div>
-    </PortalShell>
+    </MobilePortalShell>
   );
 }
