@@ -5,39 +5,63 @@
 //         recomputes all money and enforces the 30 SAR minimum (422).
 // Step 2: payment (shared PaymentPanel) -> /food/track/:code.
 // ---------------------------------------------------------------------
-import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { MapPin, AlertCircle, ArrowRight, Smartphone, Phone } from 'lucide-react';
-import { api } from '../lib/api';
-import { useAuth } from '../lib/AuthProvider';
-import { fmtSAR, vatLabel, FOOD_RADIUS_KM } from '../lib/constants';
-import { PortalShell, Card, Spinner, inputClass, btnPrimary, btnGhost } from '../components/ui';
-import LocationPicker from '../components/LocationPicker';
-import PaymentPanel from './PaymentPanel';
-import CardNextStepNote from '../components/CardNextStepNote';
+import { useEffect, useMemo, useState } from "react";
+import {
+  useNavigate,
+  useSearchParams,
+  useLocation,
+  Link,
+} from "react-router-dom";
+import {
+  MapPin,
+  AlertCircle,
+  ArrowRight,
+  Smartphone,
+  Phone,
+} from "lucide-react";
+import { api } from "../lib/api";
+import { useAuth } from "../lib/AuthProvider";
+import { fmtSAR, vatLabel, FOOD_RADIUS_KM } from "../lib/constants";
+import { MobilePortalShell } from "../components/mobile/MobilePortalShell";
+import {
+  Card,
+  Spinner,
+  inputClass,
+  btnPrimary,
+  btnGhost,
+} from "../components/ui";
+import LocationPicker from "../components/LocationPicker";
+import PaymentPanel from "./PaymentPanel";
+import CardNextStepNote from "../components/CardNextStepNote";
 
 // How the ORDER is created. Card is deliberately absent: the backend enum
 // (routes/food.js) accepts stcpay only, because an order must never be
 // created against a gateway that might be unconfigured. Paying by card is a
 // real option, just one step later — CardNextStepNote below says so.
 const PAY_METHODS = [
-  { id: 'stcpay', label: 'STC Pay', hint: 'Transfer + upload the screenshot', icon: Smartphone },
+  {
+    id: "stcpay",
+    label: "STC Pay",
+    hint: "Transfer + upload the screenshot",
+    icon: Smartphone,
+  },
 ];
 
 export default function FoodCheckoutPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [params] = useSearchParams();
-  const merchantId = params.get('m');
+  const merchantId = params.get("m");
   const { profile } = useAuth();
 
   const [cart, setCart] = useState(null);
   const [loadErr, setLoadErr] = useState(null);
-  const [address, setAddress] = useState('');
+  const [address, setAddress] = useState("");
   const [coords, setCoords] = useState(null); // { lat, lng }
-  const [street, setStreet] = useState('');
-  const [buildingNumber, setBuildingNumber] = useState('');
-  const [contactPhone, setContactPhone] = useState(profile?.mobile || '');
-  const [method, setMethod] = useState('stcpay');
+  const [street, setStreet] = useState("");
+  const [buildingNumber, setBuildingNumber] = useState("");
+  const [contactPhone, setContactPhone] = useState(profile?.mobile || "");
+  const [method, setMethod] = useState("stcpay");
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
   const [placedCode, setPlacedCode] = useState(null); // set -> payment step
@@ -46,7 +70,10 @@ export default function FoodCheckoutPage() {
 
   useEffect(() => {
     if (!merchantId) return;
-    api.foodCart(merchantId).then(setCart).catch((e) => setLoadErr(e.message));
+    api
+      .foodCart(merchantId)
+      .then(setCart)
+      .catch((e) => setLoadErr(e.message));
   }, [merchantId]);
 
   // Prefill the contact number from the profile once it loads.
@@ -55,9 +82,13 @@ export default function FoodCheckoutPage() {
   }, [profile?.mobile]);
 
   async function placeOrder() {
-    if (!address.trim()) return setError('Please enter your delivery address.');
-    if (!coords) return setError('Please tap "Use my location" so we can check the delivery radius.');
-    if (!contactPhone.trim()) return setError('Please enter a contact number for the rider.');
+    if (!address.trim()) return setError("Please enter your delivery address.");
+    if (!coords)
+      return setError(
+        'Please tap "Use my location" so we can check the delivery radius.',
+      );
+    if (!contactPhone.trim())
+      return setError("Please enter a contact number for the rider.");
 
     setError(null);
     setBusy(true);
@@ -73,7 +104,7 @@ export default function FoodCheckoutPage() {
           contact_phone: contactPhone.trim(),
           payment_method: method,
         },
-        idempotencyKey
+        idempotencyKey,
       );
       setPlacedCode(order.orderCode);
     } catch (err) {
@@ -86,51 +117,85 @@ export default function FoodCheckoutPage() {
 
   if (!merchantId) {
     return (
-      <PortalShell title="Checkout" onBack={() => navigate('/food')}>
-        <Card className="p-10 text-center max-w-md mx-auto">
+      <MobilePortalShell
+        variant="detail"
+        title="Checkout"
+        onBack={() => {
+          if (location.key !== "default") navigate(-1);
+          else navigate("/food");
+        }}
+      >
+        <Card className="p-10 text-center">
           <p className="font-bold text-brand-dark">Nothing to check out</p>
-          <p className="text-sm text-brand-grey mt-1 mb-4">Start from a restaurant menu.</p>
-          <Link to="/food" className={btnPrimary}>Browse restaurants</Link>
+          <p className="text-sm text-brand-grey mt-1 mb-4">
+            Start from a restaurant menu.
+          </p>
+          <Link to="/food" className={btnPrimary}>
+            Browse restaurants
+          </Link>
         </Card>
-      </PortalShell>
+      </MobilePortalShell>
     );
   }
 
   // Step 2 — the order exists; collect the payment.
   if (placedCode) {
     return (
-      <PortalShell title="Payment" subtitle={placedCode} onBack={() => navigate(`/food/track/${placedCode}`)}>
-        <div className="max-w-xl mx-auto space-y-4">
-          <PaymentPanel code={placedCode} onPaid={() => navigate(`/food/track/${placedCode}`)} />
+      <MobilePortalShell
+        variant="detail"
+        title="Payment"
+        subtitle={placedCode}
+        onBack={() => navigate(`/food/track/${placedCode}`)}
+      >
+        <div className="space-y-4">
+          <PaymentPanel
+            code={placedCode}
+            onPaid={() => navigate(`/food/track/${placedCode}`)}
+          />
           <button
             type="button"
             onClick={() => navigate(`/food/track/${placedCode}`)}
-            className={btnGhost + ' w-full'}
+            className={btnGhost + " w-full"}
           >
             Pay later — track my order <ArrowRight className="w-4 h-4" />
           </button>
         </div>
-      </PortalShell>
+      </MobilePortalShell>
     );
   }
 
   const items = cart?.items || [];
 
   return (
-    <PortalShell title="Checkout" onBack={() => navigate(`/food/cart?m=${merchantId}`)}>
-      <div className="max-w-xl mx-auto space-y-4">
+    <MobilePortalShell
+      variant="detail"
+      title="Checkout"
+      onBack={() => {
+        if (location.key !== "default") navigate(-1);
+        else navigate(`/food/cart?m=${merchantId}`);
+      }}
+    >
+      <div className="space-y-4 pb-6">
         {loadErr && (
-          <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm font-medium">{loadErr}</div>
+          <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm font-medium">
+            {loadErr}
+          </div>
         )}
         {!cart && !loadErr && (
-          <div className="flex justify-center py-20"><Spinner className="!w-8 !h-8" /></div>
+          <div className="flex justify-center py-20">
+            <Spinner className="!w-8 !h-8" />
+          </div>
         )}
 
         {cart && items.length === 0 && (
           <Card className="p-10 text-center">
             <p className="font-bold text-brand-dark">Your cart is empty</p>
-            <p className="text-sm text-brand-grey mt-1 mb-4">Add items before checking out.</p>
-            <Link to={`/food/r/${merchantId}`} className={btnPrimary}>Back to the menu</Link>
+            <p className="text-sm text-brand-grey mt-1 mb-4">
+              Add items before checking out.
+            </p>
+            <Link to={`/food/r/${merchantId}`} className={btnPrimary}>
+              Back to the menu
+            </Link>
           </Card>
         )}
 
@@ -142,9 +207,13 @@ export default function FoodCheckoutPage() {
                 <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                 <div className="text-sm">
                   <p className="font-bold text-amber-800">
-                    Add {fmtSAR(cart.shortfall)} more to reach the {fmtSAR(cart.minOrder)} minimum.
+                    Add {fmtSAR(cart.shortfall)} more to reach the{" "}
+                    {fmtSAR(cart.minOrder)} minimum.
                   </p>
-                  <Link to={`/food/r/${merchantId}`} className="text-amber-700 underline font-medium">
+                  <Link
+                    to={`/food/r/${merchantId}`}
+                    className="text-amber-700 underline font-medium"
+                  >
                     Back to the menu
                   </Link>
                 </div>
@@ -152,12 +221,15 @@ export default function FoodCheckoutPage() {
             )}
 
             {error && (
-              <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm font-medium">{error}</div>
+              <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm font-medium">
+                {error}
+              </div>
             )}
 
             <Card className="p-5 space-y-3">
               <p className="font-black text-brand-black flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-brand-orange" /> Delivery address
+                <MapPin className="w-4 h-4 text-brand-orange" /> Delivery
+                address
               </p>
               <LocationPicker
                 label="Address"
@@ -166,16 +238,22 @@ export default function FoodCheckoutPage() {
                 coords={coords}
                 street={street}
                 buildingNumber={buildingNumber}
-                onChange={({ address: nextAddress, coords: nextCoords, street: nextStreet, buildingNumber: nextBuilding }) => {
+                onChange={({
+                  address: nextAddress,
+                  coords: nextCoords,
+                  street: nextStreet,
+                  buildingNumber: nextBuilding,
+                }) => {
                   setAddress(nextAddress);
                   setCoords(nextCoords);
-                  setStreet(nextStreet || '');
-                  setBuildingNumber(nextBuilding || '');
+                  setStreet(nextStreet || "");
+                  setBuildingNumber(nextBuilding || "");
                 }}
               />
               <p className="text-xs text-brand-grey">
-                Your location confirms you are within the {FOOD_RADIUS_KM} km delivery radius
-                ({fmtSAR(cart.deliveryFee)} flat delivery charge).
+                Your location confirms you are within the {FOOD_RADIUS_KM} km
+                delivery radius ({fmtSAR(cart.deliveryFee)} flat delivery
+                charge).
               </p>
             </Card>
 
@@ -193,37 +271,49 @@ export default function FoodCheckoutPage() {
                 maxLength={40}
               />
               <p className="text-xs text-brand-grey">
-                The rider calls this number at your door. You can still change it while the order
-                is on its way.
+                The rider calls this number at your door. You can still change
+                it while the order is on its way.
               </p>
             </Card>
 
             <Card className="p-5">
-              <p className="font-black text-brand-black mb-3">How would you like to pay?</p>
+              <p className="font-black text-brand-black mb-3">
+                How would you like to pay?
+              </p>
               <div className="space-y-2">
                 {PAY_METHODS.map(({ id, label, hint, icon: Icon }) => (
                   <button
                     key={id}
                     type="button"
                     onClick={() => setMethod(id)}
-                    className={`w-full flex items-center gap-3 p-3.5 rounded-xl border-2 text-left transition-colors cursor-pointer ${
+                    className={`w-full flex items-center gap-3 p-3.5 rounded-xl border-2 text-left transition-colors ${
                       method === id
-                        ? 'border-brand-orange bg-brand-warm'
-                        : 'border-brand-border hover:border-brand-orange/40'
+                        ? "border-brand-orange bg-brand-warm"
+                        : "border-brand-border"
                     }`}
                   >
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                      method === id ? 'bg-brand-orange text-white' : 'bg-brand-surface text-brand-grey'
-                    }`}>
+                    <div
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                        method === id
+                          ? "bg-brand-orange text-white"
+                          : "bg-brand-surface text-brand-grey"
+                      }`}
+                    >
                       <Icon className="w-5 h-5" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="font-bold text-brand-dark text-sm">{label}</p>
+                      <p className="font-bold text-brand-dark text-sm">
+                        {label}
+                      </p>
                       <p className="text-xs text-brand-grey">{hint}</p>
                     </div>
-                    <span className={`w-4 h-4 rounded-full border-2 shrink-0 ${
-                      method === id ? 'border-brand-orange bg-brand-orange' : 'border-brand-border'
-                    }`} />
+                    <span
+                      className={`w-4 h-4 rounded-full border-2 shrink-0 ${
+                        method === id
+                          ? "border-brand-orange bg-brand-orange"
+                          : "border-brand-border"
+                      }`}
+                    />
                   </button>
                 ))}
               </div>
@@ -237,19 +327,45 @@ export default function FoodCheckoutPage() {
                   <div key={line.id} className="flex justify-between gap-3">
                     <span className="text-brand-dark truncate">
                       {line.quantity} × {line.name}
-                      {line.sizeLabel ? <span className="text-brand-grey"> ({line.sizeLabel})</span> : null}
+                      {line.sizeLabel ? (
+                        <span className="text-brand-grey">
+                          {" "}
+                          ({line.sizeLabel})
+                        </span>
+                      ) : null}
                     </span>
-                    <span className="tabular-nums font-medium shrink-0">{fmtSAR(line.lineTotal)}</span>
+                    <span className="tabular-nums font-medium shrink-0">
+                      {fmtSAR(line.lineTotal)}
+                    </span>
                   </div>
                 ))}
               </div>
               <div className="mt-4 pt-3 border-t border-brand-border space-y-1.5 text-sm">
-                <div className="flex justify-between"><span className="text-brand-grey">Subtotal</span><span className="font-bold tabular-nums">{fmtSAR(cart.subtotal)}</span></div>
-                <div className="flex justify-between"><span className="text-brand-grey">Delivery charge</span><span className="font-bold tabular-nums">{fmtSAR(cart.deliveryFee)}</span></div>
-                <div className="flex justify-between"><span className="text-brand-grey">{vatLabel(cart.vatRate)}</span><span className="font-bold tabular-nums">{fmtSAR(cart.vatAmount)}</span></div>
+                <div className="flex justify-between">
+                  <span className="text-brand-grey">Subtotal</span>
+                  <span className="font-bold tabular-nums">
+                    {fmtSAR(cart.subtotal)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-brand-grey">Delivery charge</span>
+                  <span className="font-bold tabular-nums">
+                    {fmtSAR(cart.deliveryFee)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-brand-grey">
+                    {vatLabel(cart.vatRate)}
+                  </span>
+                  <span className="font-bold tabular-nums">
+                    {fmtSAR(cart.vatAmount)}
+                  </span>
+                </div>
                 <div className="flex justify-between pt-1.5 border-t border-brand-border">
                   <span className="font-bold text-brand-dark">Total</span>
-                  <span className="font-black text-brand-orange tabular-nums">{fmtSAR(cart.total)}</span>
+                  <span className="font-black text-brand-orange tabular-nums">
+                    {fmtSAR(cart.total)}
+                  </span>
                 </div>
               </div>
             </Card>
@@ -258,17 +374,20 @@ export default function FoodCheckoutPage() {
               type="button"
               onClick={placeOrder}
               disabled={busy || !cart.meetsMinimum}
-              className={btnPrimary + ' w-full !py-4'}
+              className={btnPrimary + " w-full !py-4"}
             >
               {busy ? (
                 <Spinner className="!border-white/40 !border-t-white" />
               ) : (
-                <>Place order & continue to payment <ArrowRight className="w-4 h-4" /></>
+                <>
+                  Place order & continue to payment{" "}
+                  <ArrowRight className="w-4 h-4" />
+                </>
               )}
             </button>
           </>
         )}
       </div>
-    </PortalShell>
+    </MobilePortalShell>
   );
 }

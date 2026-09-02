@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
 import {
   MessageCircle,
   X,
@@ -42,6 +42,7 @@ const ACTIVE = ["accepted", "on_the_way", "arrived", "started"];
 export default function TrackPage() {
   const { code } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { session, profile, user } = useAuth();
   const [data, setData] = useState(null);
   const [live, setLive] = useState({ driverLocation: null, etaMinutes: null });
@@ -207,7 +208,10 @@ export default function TrackPage() {
         variant="detail"
         title="Tracking"
         subtitle={code}
-        onBack={() => navigate("/home")}
+        onBack={() => {
+          if (location.key !== "default") navigate(-1);
+          else navigate("/home");
+        }}
       >
         <div className="flex items-center justify-center py-20">
           <Spinner className="!w-8 !h-8" />
@@ -221,7 +225,10 @@ export default function TrackPage() {
         variant="detail"
         title="Tracking"
         subtitle={code}
-        onBack={() => navigate("/home")}
+        onBack={() => {
+          if (location.key !== "default") navigate(-1);
+          else navigate("/home");
+        }}
       >
         <Card className="p-6 text-center">
           <p className="text-red-600 font-bold mb-3">{error}</p>
@@ -291,7 +298,10 @@ export default function TrackPage() {
       variant="detail"
       title="Live tracking"
       subtitle={code}
-      onBack={() => navigate("/home")}
+      onBack={() => {
+        if (location.key !== "default") navigate(-1);
+        else navigate("/home");
+      }}
       right={
         <button
           onClick={refetch}

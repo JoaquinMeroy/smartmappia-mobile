@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { CreditCard, Trash2, Star, ShieldCheck } from "lucide-react";
 import { api } from "../lib/api";
 import { savedCardLabel } from "../lib/constants";
@@ -8,6 +8,7 @@ import { Card, Badge, btnGhost, Spinner } from "../components/ui";
 
 export default function PaymentMethodsPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [methods, setMethods] = useState(null);
   const [error, setError] = useState(null);
   const [busyId, setBusyId] = useState(null);
@@ -55,7 +56,10 @@ export default function PaymentMethodsPage() {
       variant="detail"
       title="Payment methods"
       subtitle="Your saved cards"
-      onBack={() => navigate("/profile")}
+      onBack={() => {
+        if (location.key !== "default") navigate(-1);
+        else navigate("/profile");
+      }}
     >
       <div className="space-y-4">
         {error && (

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { Upload, CheckCircle2 } from "lucide-react";
 import { api } from "../lib/api";
 import { vatLabel } from "../lib/constants";
@@ -17,6 +17,7 @@ import CardPaySection from "../components/CardPaySection";
 export default function PayPage() {
   const { code } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [instructions, setInstructions] = useState(null);
   const [loadErr, setLoadErr] = useState(null);
   const [error, setError] = useState(null);
@@ -60,7 +61,10 @@ export default function PayPage() {
       variant="detail"
       title="Pay with STC Pay"
       subtitle={code}
-      onBack={() => navigate("/home")}
+      onBack={() => {
+        if (location.key !== "default") navigate(-1);
+        else navigate("/home");
+      }}
     >
       {loadErr && (
         <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm font-medium">

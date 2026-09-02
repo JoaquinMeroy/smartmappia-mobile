@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   ShieldCheck,
   UtensilsCrossed,
@@ -30,6 +30,7 @@ const TABS = [
 
 export default function TransactionsPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { profile, user } = useAuth();
   const customerName =
     profile?.fullName || user?.email || "Smart Mappia customer";
@@ -142,7 +143,10 @@ export default function TransactionsPage() {
       variant="detail"
       title="Transaction records"
       subtitle="Your orders, trips & receipts"
-      onBack={() => navigate("/profile")}
+      onBack={() => {
+        if (location.key !== "default") navigate(-1);
+        else navigate("/home");
+      }}
       right={
         <button
           onClick={load}
