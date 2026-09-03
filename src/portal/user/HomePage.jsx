@@ -8,10 +8,12 @@ import { Link } from "react-router-dom";
 import {
   Plane,
   UtensilsCrossed,
+  ShoppingBag,
   ReceiptText,
   ArrowRight,
   ShieldCheck,
 } from "lucide-react";
+
 import { useAuth } from "../lib/AuthProvider";
 import { MobilePortalShell } from "../components/mobile/MobilePortalShell";
 import { Card } from "../components/ui";
@@ -82,6 +84,13 @@ export default function HomePage() {
           title="Food Delivery"
           description="Order from local restaurants, delivered to your door."
           cta="Browse restaurants"
+        />
+        <ServiceCard
+          to="/shop"
+          icon={ShoppingBag}
+          title="Shop"
+          description="Groceries, household and everyday essentials, delivered."
+          cta="Browse stores"
         />
       </div>
 
